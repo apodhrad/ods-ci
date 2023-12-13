@@ -11,7 +11,7 @@ Suite Teardown   Patch DataScienceCluster CustomResource To Original Configurati
 
 *** Variables ***
 @{COMPONENTS} =    dashboard    datasciencepipelines    kserve    modelmeshserving    workbenches    codeflare    ray
-${DSC_NAME} =    default
+${DSC_NAME} =    default-dsc
 ${PATCH_PREFIX} =    oc patch datasciencecluster ${DSC_NAME} --type='merge' -p '{"spec": {"components": {
 @{ORIGINAL_CONFIGURATION}
 
@@ -89,7 +89,7 @@ Verify Component Resources
 Enable Single Component
     [Documentation]    Enables a single component AND disables all other components. If "none" is used
     ...    disables all components
-    [Arguments]    ${component}    ${dsc_name}=default
+    [Arguments]    ${component}    ${dsc_name}=default-dsc
     IF    "${component}" not in @{COMPONENTS} and "${component}" != "none"
         Log    unknown component: ${component}    level=WARN
         RETURN
@@ -144,7 +144,7 @@ Get Original Configuration
 
 Patch DataScienceCluster CustomResource To Original Configuration
     [Documentation]  Enables a mix of components based on the values set before this test suite was started
-    [Arguments]    ${dsc_name}=default
+    [Arguments]    ${dsc_name}=default-dsc
     ${len} =    Get Length    ${COMPONENTS}
     ${patch} =    Set Variable    ${PATCH_PREFIX}
     FOR    ${index}    ${cmp}    IN ENUMERATE    @{COMPONENTS}

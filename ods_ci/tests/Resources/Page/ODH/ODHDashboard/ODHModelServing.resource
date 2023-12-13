@@ -276,6 +276,7 @@ Deploy Model Via CLI
     ...                yaml via CLI. It assumes that the necessary Runtime has been already created
     ...                in the same ${namespace}
     [Arguments]    ${isvc_filepath}    ${namespace}
+    Log To Console    "oc apply -f ${isvc_filepath} -n ${namespace}"
     ${rc}    ${out}=    Run And Return Rc And Output
     ...    oc apply -f ${isvc_filepath} -n ${namespace}
     Should Be Equal As Integers    ${rc}    ${0}

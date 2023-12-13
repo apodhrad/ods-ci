@@ -12,8 +12,8 @@ Suite Teardown    Uninstall RHODS V2 Embedded
 ***Variables***
 ${cluster_type}              selfmanaged
 ${image_url}                 ${EMPTY}
-${dsci_name}                 default
-${dsc_name}                  default
+${dsci_name}                 default-dsci
+${dsc_name}                  default-dsc
 
 
 *** Test Cases ***

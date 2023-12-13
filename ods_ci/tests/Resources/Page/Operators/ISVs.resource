@@ -56,8 +56,12 @@ Operator Subscription Last Condition Should Be
     [Documentation]    Checks the subscription status matches the expected status
     [Arguments]    ${type}    ${status}    ${reason}
     ...    ${subcription_name}    ${namespace}=openshift-operators
+    Log To Console  ${type}
+    Log To Console  ${status}
+    Log To Console  ${reason}
+    Log To Console  ${subcription_name} 
     ${rc}    ${out}=    Run And Return Rc And Output
-    ...    oc get subscription ${subcription_name} -n ${namespace} -ojson | jq '.status.conditions | last | select(.type=="${type}" and .status=="${status}" and .reason=="${reason}")'    # robocop: disable
+    ...    oc get subscription ${subcription_name} -n ${namespace} -ojson | jq '.status.conditions[] | select(.type=="${type}" and .status=="${status}" and .reason=="${reason}")'    # robocop: disable
     Should Be Equal As Integers    ${rc}     ${0}
     Should Not Be Empty    ${out}
 
@@ -66,6 +70,8 @@ Wait Until Operator Subscription Last Condition Is    # robocop: disable
     [Arguments]    ${type}    ${status}    ${reason}
     ...    ${subcription_name}    ${namespace}=openshift-operators
     ...    ${retry}=20    ${retry_interval}=3s
+    Log To Console    "APLog:"
+    Log To Console    ${subcription_name}
     Wait Until Keyword Succeeds    ${retry} times    ${retry_interval}    Operator Subscription Last Condition Should Be    # robocop: disable
     ...    type=${type}     status=${status}
     ...    reason=${reason}    subcription_name=${subcription_name}
