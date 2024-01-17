@@ -26,12 +26,21 @@ Create S3 Data Connection
     [Arguments]    ${project_title}    ${dc_name}    ${aws_access_key}    ${aws_secret_access}
     ...            ${aws_s3_endpoint}=${S3.AWS_DEFAULT_ENDPOINT}    ${aws_region}=${S3.AWS_DEFAULT_REGION}
     ...            ${connected_workbench}=${NONE}    ${press_cancel}=${FALSE}    ${aws_bucket_name}=${NONE}
+    ...            ${aws_s3_ca_bundle}=${NONE}
     Click Button    ${DC_ADD_BTN_1_XP}
     Fill Data Connection Form    ${project_title}    ${dc_name}    ${aws_access_key}    ${aws_secret_access}
     ...            ${S3_DC_ADD_BTN}    aws_s3_endpoint=${aws_s3_endpoint}    aws_region=${aws_region}
     ...            connected_workbench=${connected_workbench}    press_cancel=${press_cancel}
     ...            aws_bucket_name=${aws_bucket_name}
     Wait Until Project Is Open    project_title=${project_title}
+    Patch S3 Data Connection With CA Bundle    ${dc_name}    ${aws_s3_ca_bundle}
+
+Patch S3 Data Connection With CA Bundle
+    [Documentation]    Patch S3 Data Connection With CA Bundle
+    [Arguments]    ${dc_name}    ${aws_s3_ca_bundle}
+    Log To Console    This is just an example log
+    Log To Console    "Another example log"
+    Log To Console    "dc_name: ${dc_name}, ca_bundle: ${aws_s3_ca_bundle}"
 
 Edit S3 Data Connection
     [Documentation]    Edits a S3 Data Connection from DS Project details page
