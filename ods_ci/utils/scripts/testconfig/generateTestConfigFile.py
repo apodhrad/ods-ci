@@ -277,6 +277,10 @@ def generate_test_config_file(
     with open(config_file, "w") as yaml_file:
         yaml_file.write(yaml.dump(data, default_flow_style=False, sort_keys=False))
 
+    print(f"APLog: after generating cat {config_file}")
+    with open(config_file) as f:
+        data = f.read()
+        print(data)
 
 def main():
     """main function"""
@@ -297,8 +301,15 @@ def main():
         print("Skipping cloning of config gitlab repo")
 
     config_file = args.repo_dir + "/test-variables.yml"
+    print(f"APLog: cat {config_file}")
+    with open(config_file) as f:
+        data = f.read()
+        print(data)
+    print(f"APLog: config_data = read_yaml({config_file})")
     config_data = read_yaml(config_file)
+    print(config_data)
 
+    print("APLog: Now generate test config file")
     # Generate test config file
     generate_test_config_file(
         args.config_template, config_data, args.test_cluster, args.set_prometheus_config,
