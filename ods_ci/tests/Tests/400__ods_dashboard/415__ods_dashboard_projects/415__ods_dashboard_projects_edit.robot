@@ -81,7 +81,6 @@ Verify User Can Edit A S3 Data Connection
     ...                          aws_access_key=${DC_S3_AWS_SECRET_ACCESS_KEY}
     ...                          aws_secret_access=${DC_S3_AWS_SECRET_ACCESS_KEY}
     ...                          aws_s3_endpoint=${DC_S3_ENDPOINT}    aws_region=${DC_S3_REGION}
-    ...                          aws_s3_ca_bundle=${S3.AWS_CA_BUNDLE}
     Edit S3 Data Connection    project_title=${PRJ_TITLE}    dc_name=${DC_S3_NAME}    new_dc_name=${DC_S3_NAME}-test
     ...            aws_access_key=${S3.AWS_ACCESS_KEY_ID}-test    aws_secret_access=${S3.AWS_SECRET_ACCESS_KEY}-test
     ...            aws_bucket_name=ods-ci-ds-pipelines-test    aws_region=${DC_S3_REGION}

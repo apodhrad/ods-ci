@@ -37,10 +37,29 @@ Create S3 Data Connection
 
 Patch S3 Data Connection With CA Bundle
     [Documentation]    Patch S3 Data Connection With CA Bundle
-    [Arguments]    ${dc_name}    ${aws_s3_ca_bundle}
+    [Arguments]    ${dc_name}    ${dc_namespace}=${NONE}    ${aws_s3_ca_bundle}=${NONE}
     Log To Console    This is just an example log
-    Log To Console    "Another example log"
-    Log To Console    "dc_name: ${dc_name}, ca_bundle: ${aws_s3_ca_bundle}"
+    Log To Console    "dc_name: ${dc_name}, ca_bundle: ${aws_s3_ca_bundle}, ds_ns: ${dc_namespace}"
+    ${length}=    Get Length    "${aws_s3_ca_bundle}"
+    Log To Console    "Length of S3.AWS_CA_BUNDLE is ${length}"
+    IF    ${length} <= 6
+        Log To Console    "Let's check S3.AWS_CA_BUNDLE"
+        ${aws_s3_ca_bundle}=    Get Variable Value    ${S3.AWS_CA_BUNDLE}    ${NONE}
+        Log To Console    "dc_name: ${dc_name}, ca_bundle: ${aws_s3_ca_bundle}, ds_ns: ${dc_namespace}"
+    END
+    ${length}=    Get Length    "${aws_s3_ca_bundle}"
+    Log To Console    "Length of S3.AWS_CA_BUNDLE is ${length}"
+    IF    ${length} > 6
+        Log To Console    "Let's update the secret with the CA bundle"
+        Log To Console    "dc_name: ${dc_name}, ca_bundle: ${aws_s3_ca_bundle}, ds_ns: ${dc_namespace}"
+        ${rc}    ${cert}=    Run And Return Rc And Output
+        ...    echo "${aws_s3_ca_bundle}" | base64 -w0 | tee aws_ca_bundle.crt  # robocop: disable
+        Should Be Equal As Strings    ${rc}    0
+        Log To Console    "cert: ${cert}"
+        ${rc}=    Run And Return Rc
+        ...    echo "[{\"op\" : \"replace\" ,\"path\" : \"/data/AWS_CA_BUNDLE\" ,\"value\" : \"${cert}\"}]" > aws_ca_bundle_patch.json  # robocop: disable
+        Should Be Equal As Strings    ${rc}    0
+    END
 
 Edit S3 Data Connection
     [Documentation]    Edits a S3 Data Connection from DS Project details page
