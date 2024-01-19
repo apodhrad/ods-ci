@@ -26,12 +26,39 @@ Create S3 Data Connection
     [Arguments]    ${project_title}    ${dc_name}    ${aws_access_key}    ${aws_secret_access}
     ...            ${aws_s3_endpoint}=${S3.AWS_DEFAULT_ENDPOINT}    ${aws_region}=${S3.AWS_DEFAULT_REGION}
     ...            ${connected_workbench}=${NONE}    ${press_cancel}=${FALSE}    ${aws_bucket_name}=${NONE}
+    ...            ${dc_namespace}=${NONE}    ${aws_s3_ca_bundle}=${NONE}
     Click Button    ${DC_ADD_BTN_1_XP}
     Fill Data Connection Form    ${project_title}    ${dc_name}    ${aws_access_key}    ${aws_secret_access}
     ...            ${S3_DC_ADD_BTN}    aws_s3_endpoint=${aws_s3_endpoint}    aws_region=${aws_region}
     ...            connected_workbench=${connected_workbench}    press_cancel=${press_cancel}
     ...            aws_bucket_name=${aws_bucket_name}
     Wait Until Project Is Open    project_title=${project_title}
+    Patch S3 Data Connection With CA Bundle    dc_name=${dc_name}    dc_namespace=${dc_namespace}    aws_s3_ca_bundle=${aws_s3_ca_bundle}
+
+Patch S3 Data Connection With CA Bundle
+    [Documentation]    Patch S3 Data Connection With CA Bundle
+    ...    If 'dc_name' or 'dc_namespace' is missing then this keyword is skipped
+    ...    If 'ca_bundle' is missing then it is taken from global variable S3.AWS_CA_BUNDLE
+    ...    If 'ca_bundle' is still missing then this keyword is skipped
+    [Arguments]    ${dc_name}    ${dc_namespace}=${NONE}    ${aws_s3_ca_bundle}=${NONE}
+    IF    '${dc_name}' == '' or '${dc_name}' == '${NONE}' or '${dc_namespace}' == '' or '${dc_namespace}' == '${NONE}'
+        RETURN    0
+    END
+    # I did not find a better way to check if multi-line string is empty or "NONE"
+    ${length}=    Get Length    "${aws_s3_ca_bundle}"
+    IF    ${length} <= 6
+        ${aws_s3_ca_bundle}=    Get Variable Value    ${S3.AWS_CA_BUNDLE}    ${NONE}
+    END
+    ${length}=    Get Length    "${aws_s3_ca_bundle}"
+    IF    ${length} > 6
+        ${rc}    ${cert}=    Run And Return Rc And Output
+        ...    echo -n "${aws_s3_ca_bundle}" | base64 -w0 # robocop: disable
+        Should Be Equal As Strings    ${rc}    0
+        ${rc}    ${out}=    Run And Return Rc And Output
+        ...    oc patch secret aws-connection-${dc_name} -n ${dc_namespace} -p '[{"op": "replace", "path": "/data/AWS_CA_BUNDLE", "value" : "${cert}"}]' --type json # robocop: disable
+        Should Be Equal As Strings    ${rc}    0
+        Log To Console    "${out}"
+    END
 
 Edit S3 Data Connection
     [Documentation]    Edits a S3 Data Connection from DS Project details page
