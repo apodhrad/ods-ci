@@ -26,20 +26,23 @@ Create S3 Data Connection
     [Arguments]    ${project_title}    ${dc_name}    ${aws_access_key}    ${aws_secret_access}
     ...            ${aws_s3_endpoint}=${S3.AWS_DEFAULT_ENDPOINT}    ${aws_region}=${S3.AWS_DEFAULT_REGION}
     ...            ${connected_workbench}=${NONE}    ${press_cancel}=${FALSE}    ${aws_bucket_name}=${NONE}
-    ...            ${aws_s3_ca_bundle}=${NONE}
+    ...            ${dc_namespace}=${NONE}    ${aws_s3_ca_bundle}=${NONE}
     Click Button    ${DC_ADD_BTN_1_XP}
     Fill Data Connection Form    ${project_title}    ${dc_name}    ${aws_access_key}    ${aws_secret_access}
     ...            ${S3_DC_ADD_BTN}    aws_s3_endpoint=${aws_s3_endpoint}    aws_region=${aws_region}
     ...            connected_workbench=${connected_workbench}    press_cancel=${press_cancel}
     ...            aws_bucket_name=${aws_bucket_name}
     Wait Until Project Is Open    project_title=${project_title}
-    Patch S3 Data Connection With CA Bundle    ${dc_name}    ${aws_s3_ca_bundle}
+    Patch S3 Data Connection With CA Bundle    dc_name=${dc_name}    dc_namespace=${dc_namespace}    aws_s3_ca_bundle=${aws_s3_ca_bundle}
 
 Patch S3 Data Connection With CA Bundle
     [Documentation]    Patch S3 Data Connection With CA Bundle
     [Arguments]    ${dc_name}    ${dc_namespace}=${NONE}    ${aws_s3_ca_bundle}=${NONE}
     Log To Console    This is just an example log
-    Log To Console    "dc_name: ${dc_name}, ca_bundle: ${aws_s3_ca_bundle}, ds_ns: ${dc_namespace}"
+    Log To Console    "dc_name: ${dc_name}, ds_namespace: ${dc_namespace}", ca_bundle: ${aws_s3_ca_bundle}
+    Return From Keyword If
+    ...    '${dc_name}' == '' or '${dc_name}' == '${NONE}' or '${dc_namespace}' == '' or '${dc_namespace}' == '${NONE}'
+    ...    0
     ${length}=    Get Length    "${aws_s3_ca_bundle}"
     Log To Console    "Length of S3.AWS_CA_BUNDLE is ${length}"
     IF    ${length} <= 6
@@ -50,15 +53,13 @@ Patch S3 Data Connection With CA Bundle
     ${length}=    Get Length    "${aws_s3_ca_bundle}"
     Log To Console    "Length of S3.AWS_CA_BUNDLE is ${length}"
     IF    ${length} > 6
-        Log To Console    "Let's update the secret with the CA bundle"
-        Log To Console    "dc_name: ${dc_name}, ca_bundle: ${aws_s3_ca_bundle}, ds_ns: ${dc_namespace}"
         ${rc}    ${cert}=    Run And Return Rc And Output
-        ...    echo "${aws_s3_ca_bundle}" | base64 -w0 | tee aws_ca_bundle.crt  # robocop: disable
+        ...    echo "${aws_s3_ca_bundle}" | base64 -w0 # robocop: disable
         Should Be Equal As Strings    ${rc}    0
-        Log To Console    "cert: ${cert}"
-        ${rc}=    Run And Return Rc
-        ...    echo "[{\"op\" : \"replace\" ,\"path\" : \"/data/AWS_CA_BUNDLE\" ,\"value\" : \"${cert}\"}]" > aws_ca_bundle_patch.json  # robocop: disable
+        ${rc}    ${out}=    Run And Return Rc And Output
+        ...    oc patch secret aws-connection-${dc_name} -n ${dc_namespace} -p '[{"op": "replace", "path": "/data/AWS_CA_BUNDLE", "value" : "${cert}"}]' --type json # robocop: disable
         Should Be Equal As Strings    ${rc}    0
+        Log To Console    "${out}"
     END
 
 Edit S3 Data Connection

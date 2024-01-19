@@ -77,7 +77,8 @@ Verify User Can Edit A S3 Data Connection
     [Tags]    Sanity    Tier1    ODS-1932
     [Documentation]    Verifies users can add a Data connection to AWS S3
     [Setup]    Open Data Science Project Details Page    project_title=${PRJ_TITLE}
-    Create S3 Data Connection    project_title=${PRJ_TITLE}    dc_name=${DC_S3_NAME}
+    Create S3 Data Connection    project_title=${PRJ_TITLE}
+    ...                          dc_name=${DC_S3_NAME}    dc_namespace=${PRJ_RESOURCE_NAME}
     ...                          aws_access_key=${DC_S3_AWS_SECRET_ACCESS_KEY}
     ...                          aws_secret_access=${DC_S3_AWS_SECRET_ACCESS_KEY}
     ...                          aws_s3_endpoint=${DC_S3_ENDPOINT}    aws_region=${DC_S3_REGION}
