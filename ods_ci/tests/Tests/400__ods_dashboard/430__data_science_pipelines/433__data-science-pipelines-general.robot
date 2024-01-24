@@ -13,7 +13,7 @@ Resource            ../../../Resources/Page/Operators/OpenShiftPipelines.resourc
 Library             DateTime
 Library             ../../../../libs/DataSciencePipelinesAPI.py
 Suite Setup         General Suite Setup
-Suite Teardown      General Suite Teardown
+#Suite Teardown      General Suite Teardown
 
 
 *** Variables ***

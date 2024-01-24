@@ -21,6 +21,7 @@ Create Pipeline Server
     ...                It assumes the Data Connection is aleady created
     ...                and you wants to use defaul DB configurations [TEMPORARY]
     [Arguments]    ${dc_name}    ${project_title}
+    ...            ${aws_s3_ca_bundle}=${NONE}
     # Every 2 mins the frontend updates its cache and the client polls every 30seconds.
     # So the longest you’d have to wait is 2.5 mins. Set 3 min just to make sure
     Wait Until Page Contains Element    ${PIPELINES_SERVER_BTN_XP}    timeout=180s
@@ -34,6 +35,29 @@ Create Pipeline Server
     Wait Until Generic Modal Disappears
     Wait Until Project Is Open    project_title=${project_title}
     ...    timeout-pre-spinner=5s    timeout-spinner=60s
+    # Check if there is any CA Bundle
+    # I did not find a better way to check if multi-line string is empty or "NONE"
+    ${length}=    Get Length    "${aws_s3_ca_bundle}"
+    IF    ${length} <= 6
+        ${aws_s3_ca_bundle}=    Get Variable Value    ${S3.AWS_CA_BUNDLE}    ${NONE}
+        ${length}=    Get Length    "${aws_s3_ca_bundle}"
+    END
+    IF    ${length} > 6
+        Patch S3 Data Connection With CA Bundle
+        ...    project_title=${project_title}    dc_name=${dc_name}    aws_s3_ca_bundle=${aws_s3_ca_bundle}
+    END
+
+Patch Pipeline Server With CA Bundle
+    [Documentation]    Patch the underlying DSPA resource With CA Bundle
+    [Arguments]    ${project_title}    ${dc_name}    ${aws_s3_ca_bundle}
+    ${dc_namespace}=    Get Openshift Namespace From Data Science Project    ${project_title}
+    ${rc}    ${cert}=    Run And Return Rc And Output
+    ...    echo -n "${aws_s3_ca_bundle}" | base64 -w0    # robocop: disable
+    Should Be Equal As Strings    ${rc}    0
+    ${rc}    ${out}=    Run And Return Rc And Output
+    ...    oc patch secret aws-connection-${dc_name} -n ${dc_namespace} -p '[{"op": "replace", "path": "/data/AWS_CA_BUNDLE", "value" : "${cert}"}]' --type json    # robocop: disable
+    Should Be Equal As Strings    ${rc}    0
+    Log To Console    "${out}"
 
 Select Data Connection
     [Documentation]    Selects an existing data connection from the dropdown
