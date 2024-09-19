@@ -102,4 +102,4 @@ items:
     name: ${infrastructure_configurations}[image_set]
     namespace: ${infrastructure_configurations}[hive_claim_ns]
   spec:
-    releaseImage: quay.io/openshift-release-dev/ocp-release:${infrastructure_configurations}[ocp_version]-x86_64
+    releaseImage: quay.io/mandre/release:sno-4.15
