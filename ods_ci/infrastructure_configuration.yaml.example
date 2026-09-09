@@ -3,3 +3,5 @@ infrastructure_configurations:
     hive_cluster_name: rhodsawstest
     hive_claim_name: rhodsawstestclaim
     use_cluster_pool: True
+    # Render and print Hive manifests without creating cluster or cloud resources.
+    hive_resources_dry_run: True

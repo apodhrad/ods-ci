@@ -2,12 +2,20 @@
 Resource    ../../../../tests/Resources/Common.robot
 Library    Process
 
+*** Variables ***
+${hive_resources_dry_run}    ${TRUE}
+
 *** Keywords ***
 Claim Cluster
     Log    Claiming cluster ${cluster_name}    console=True
-    Wait Until Keyword Succeeds    2 min    10 s
-    ...    Oc Apply    kind=ClusterClaim    src=tasks/Resources/Provisioning/Hive/claim.yaml
-    ...    template_data=${infrastructure_configurations}
+    IF    ${hive_resources_dry_run}
+        Print Hive Resource Template    tasks/Resources/Provisioning/Hive/claim.yaml
+        ...    ${infrastructure_configurations}
+    ELSE
+        Wait Until Keyword Succeeds    2 min    10 s
+        ...    Oc Apply    kind=ClusterClaim    src=tasks/Resources/Provisioning/Hive/claim.yaml
+        ...    template_data=${infrastructure_configurations}
+    END
 
 Does ClusterName Exists
     [Arguments]    ${use_pool}=${TRUE}
@@ -52,6 +60,14 @@ Provision Cluster
     [Documentation]    If cluster does not exist already, it selects the
     ...                resource provisioning template based on the Cloud provider
     ...                and starts the creationg of cloud resources
+    ${hive_resources_dry_run}=    Get Hive Resources Dry Run
+    Set Task Variable    ${hive_resources_dry_run}
+    IF    ${hive_resources_dry_run}
+        Log    Hive resource dry run enabled; no cluster or cloud resources will be created.    console=True
+        Select Provisioner Template    ${provider_type}
+        Create Provider Resources
+        RETURN
+    END
     Log    Setting cluster ${cluster_name} configuration    console=True
     Should Be True    "${hive_kubeconf}" != "${EMPTY}"
     ${clustername_exists} =    Does ClusterName Exists    use_pool=${use_cluster_pool}
@@ -79,6 +95,20 @@ Handle Already Existing Cluster
 
 Create Provider Resources
     Log    Creating Hive resources for cluster ${cluster_name} on ${provider_type} according to: ${template}   console=True
+    IF    ${hive_resources_dry_run}
+        IF    "${provider_type}" in ["AWS", "GCP", "AZURE"]
+            Print Hive Resource Template    ${template}    ${infrastructure_configurations}
+        ELSE IF    "${provider_type}" == "OSP"
+            Create Openstack Resources
+        ELSE IF    "${provider_type}" == "IBM"
+            ${hive_yaml} =    Set Variable    ${artifacts_dir}/${cluster_name}_hive.yaml
+            Create File From Template    ${template}    ${hive_yaml}
+            Print Hive Resource File    ${hive_yaml}
+        ELSE
+            FAIL    Invalid provider name
+        END
+        RETURN
+    END
     IF    "${provider_type}" in ["AWS", "GCP", "AZURE"]
         Oc Apply    kind=List    src=${template}    api_version=v1
         ...    template_data=${infrastructure_configurations}
@@ -114,6 +144,19 @@ Select Provisioner Template
 
 Create Openstack Resources
     Log    Creating OSP resources in Cloud '${infrastructure_configurations}[osp_cloud_name]'    console=True
+    IF    ${hive_resources_dry_run}
+        ${FIP_API}    Evaluate    ${infrastructure_configurations}.get('fip_api', '')
+        ${FIP_APPS}    Evaluate    ${infrastructure_configurations}.get('fip_apps', '')
+        ${cloud_name}    Set Variable    ${infrastructure_configurations}[osp_cloud_name]
+        ${OSP_CLOUD}    Evaluate    base64.b64encode($cloud_name.encode()).decode()    modules=base64
+        Set Task Variable    ${FIP_API}
+        Set Task Variable    ${FIP_APPS}
+        Set Task Variable    ${OSP_CLOUD}
+        ${hive_yaml} =    Set Variable    ${artifacts_dir}/${cluster_name}_hive.yaml
+        Create File From Template    ${template}    ${hive_yaml}
+        Print Hive Resource File    ${hive_yaml}
+        RETURN
+    END
     ${result}    Run Process 	echo '${infrastructure_configurations}[osp_cloud_name]' | base64 -w0    shell=yes
     Should Be True    ${result.rc} == 0
     Set Task Variable    ${OSP_CLOUD}    ${result.stdout}
@@ -288,3 +331,29 @@ Create IBM Manifests Secret
     ...    shell=yes
     Log    ${result.stderr}
     Should Be True    ${result.rc} == 0    msg=${result.stderr}
+
+Get Hive Resources Dry Run
+    [Documentation]    Return whether Hive resources should be rendered and printed instead of created.
+    ${key_present}=    Run Keyword And Return Status    Dictionary Should Contain Key
+    ...    ${infrastructure_configurations}    hive_resources_dry_run
+    IF    ${key_present}
+        RETURN    ${infrastructure_configurations}[hive_resources_dry_run]
+    END
+    RETURN    ${TRUE}
+
+Print Hive Resource Template
+    [Documentation]    Render a Jinja Hive template and print the generated manifest without applying it.
+    [Arguments]    ${template}    ${template_data}
+    ${template_content}=    Get File    ${template}
+    ${rendered_content}=    Evaluate
+    ...    jinja2.Template($template_content).render(**$template_data)
+    ...    modules=jinja2
+    Log To Console    ${\n}===== Hive resources from ${template} (dry run) =====${\n}${rendered_content}${\n}===== End Hive resources =====
+    Log    ${rendered_content}
+
+Print Hive Resource File
+    [Documentation]    Print a rendered Hive resource file without applying it.
+    [Arguments]    ${resource_file}
+    ${resource_content}=    Get File    ${resource_file}
+    Log To Console    ${\n}===== Hive resources from ${resource_file} (dry run) =====${\n}${resource_content}${\n}===== End Hive resources =====
+    Log    ${resource_content}

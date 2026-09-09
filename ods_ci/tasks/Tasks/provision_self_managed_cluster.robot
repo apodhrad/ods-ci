@@ -32,6 +32,9 @@ Provision Self-Managed Cluster
     [Setup]    Set ClusterPool Variables
     Provision Cluster
     IF    ${use_cluster_pool}    Claim Cluster
+    IF    ${hive_resources_dry_run}
+        Pass Execution    Hive resource dry run completed; no resources were created.
+    END
     Wait For Cluster To Be Ready
     Save Cluster Credentials
     Login To Cluster

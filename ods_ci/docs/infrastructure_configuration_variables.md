@@ -8,6 +8,7 @@ The infrastructure configuration variables are used to configure the infrastruct
 | `hive_cluster_name` | The name of the cluster. | `rhods{provider}` | `all` |
 | `hive_claim_name` | The name of the claim. | `rhods{provider}claim` | `all` |
 | `hive_claim_ns` | The namespace of the claim. | `rhods` | `all` |
+| `hive_resources_dry_run` | Render and print Hive manifests without creating cluster or cloud resources. | `True` | `all` |
 | `image_set` | The image set name to use for the cluster. | `rhods-openshift` | `all` |
 | `base_domain` | The base domain to use for the cluster. | `""` | `aws` |
 | `worker_node_instance_type` | The instance type to use for the worker nodes. | `m5.2xlarge` | `all` |
@@ -43,4 +44,3 @@ The infrastructure configuration variables are used to configure the infrastruct
 | `ocp_version` | The Openshift version of the cluster. | `""` | `osp` |
 | registry_pull_secret | The registry pull secret to use for the cluster. | `""` | `all` |
 | registryCA | The registry CA to use for the cluster. | `""` | `all` |
-
