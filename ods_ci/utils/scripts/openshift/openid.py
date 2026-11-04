@@ -226,6 +226,78 @@ class OpenIdOps:
             return None
         return result
 
+    def _log_openid_cluster_state(self, idp_name: str, ocp_secret_name: str):
+        """Log non-sensitive cluster state useful when configuring an OpenID provider."""
+        try:
+            result = execute_command("oc whoami --show-server", print_stdout=False, return_rc=True)
+            if result is None:
+                log.warning("OpenID diagnostics: could not determine the API server (command execution failed)")
+            elif result[0] == 0 and result[1].strip():
+                log.info(f"OpenID diagnostics: connected API server is {result[1].strip()}")
+            else:
+                log.warning(f"OpenID diagnostics: could not determine the API server (rc={result[0]})")
+        except Exception as e:
+            log.warning(f"OpenID diagnostics: failed to query the API server: {e}")
+
+        try:
+            secret_cmd = f"oc get secret {shlex.quote(ocp_secret_name)} -n openshift-config -o name"
+            result = execute_command(secret_cmd, print_stdout=False, return_rc=True)
+            if result is None:
+                log.warning(f"OpenID diagnostics: could not check secret {ocp_secret_name!r}")
+            elif result[0] == 0:
+                log.info(f"OpenID diagnostics: secret {ocp_secret_name!r} exists in openshift-config")
+            elif "not found" in result[1].lower() or "notfound" in result[1].lower():
+                log.info(f"OpenID diagnostics: secret {ocp_secret_name!r} is absent from openshift-config")
+            else:
+                detail = result[1].strip().replace("\n", " ")[:500]
+                log.warning(
+                    f"OpenID diagnostics: secret {ocp_secret_name!r} check failed "
+                    f"(rc={result[0]}): {detail}"
+                )
+        except Exception as e:
+            log.warning(f"OpenID diagnostics: failed to check secret {ocp_secret_name!r}: {e}")
+
+        try:
+            result = execute_command("oc get oauth cluster -o json", print_stdout=False, return_rc=True)
+            if result is None:
+                log.warning("OpenID diagnostics: could not inspect OAuth identity providers")
+            elif result[0] != 0:
+                detail = result[1].strip().replace("\n", " ")[:500]
+                log.warning(
+                    f"OpenID diagnostics: OAuth query failed (rc={result[0]}): {detail}"
+                )
+            else:
+                oauth = json.loads(result[1])
+                providers = oauth.get("spec", {}).get("identityProviders", []) or []
+                if providers:
+                    descriptions = []
+                    for provider in providers:
+                        description = (
+                            f"{provider.get('name', '<unnamed>')} "
+                            f"(type={provider.get('type', '<unknown>')})"
+                        )
+                        if provider.get("type") == "OpenID":
+                            secret_ref = provider.get("openID", {}).get("clientSecret", {}).get("name")
+                            if secret_ref:
+                                description += f", clientSecretRef={secret_ref}"
+                        descriptions.append(description)
+                    log.info("OpenID diagnostics: configured OAuth providers: " + "; ".join(descriptions))
+                else:
+                    log.info("OpenID diagnostics: no OAuth identity providers are configured")
+
+                matching_providers = [provider for provider in providers if provider.get("name") == idp_name]
+                if matching_providers:
+                    matching_types = ", ".join(
+                        provider.get("type", "<unknown>") for provider in matching_providers
+                    )
+                    log.info(f"OpenID diagnostics: provider named {idp_name!r} exists (type={matching_types})")
+                else:
+                    log.info(f"OpenID diagnostics: provider named {idp_name!r} is absent")
+        except (json.JSONDecodeError, TypeError, AttributeError) as e:
+            log.warning(f"OpenID diagnostics: could not parse OAuth configuration: {e}")
+        except Exception as e:
+            log.warning(f"OpenID diagnostics: failed to inspect OAuth configuration: {e}")
+
     def _apply_openid_identity_provider(self):
         """Patches OAuth CR with the new identity provider"""
         template_path = os.path.abspath(
@@ -488,6 +560,7 @@ class OpenIdOps:
     ):
         """Configure the OpenID identity provider in the cluster"""
         log.info("Adding OpenID identity provider...")
+        self._log_openid_cluster_state(idp_name, ocp_secret_name)
         self.idp_name = idp_name
         self.client_id = client_id
         self.client_secret = client_secret
